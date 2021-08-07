@@ -1,4 +1,4 @@
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Callable
 import time
 
 import numpy as np
@@ -61,7 +61,7 @@ def eval_model(model, dataset):
     return average_precision_score(dataset.labels, proba)
 
 
-def select(model, dataset, indices: List[int], budget: int):
+def select_maxent(model, dataset, indices: List[int], budget: int):
     # Get prediction probability for elegible indices
     proba = model.predict_proba(dataset.embeddings[indices])
 
@@ -90,13 +90,14 @@ def collect_labels(dataset, indices: np.array, target_class: str):
         # Get user label
         need_input = True
         while need_input:
-            label = input(f'Is this an example of {target_class}? (0/1) ')
+            label = input(f'Is this an example of {target_class}? [Y/n] ')
+            label = 'Y' if label is None or label == '' else label[0].upper()
 
-            if label not in ['0', '1']:
+            if label not in ['N', 'Y']:
                 print('Invalid input')
                 continue
 
-            labels.append(int(label))
+            labels.append(1 if label == 'Y' else 0)
             need_input = False
 
     clear_output()
@@ -122,7 +123,8 @@ def seals(train,
           rounds: Tuple[int],
           npos: int = 5,
           nneg: int = 95,
-          k: int = 100):
+          k: int = 100,
+          select: Callable = select_maxent):
 
     # Set initial values
     labeled = create_seed(train.labels, train.embeddings_dimension, npos, nneg)
